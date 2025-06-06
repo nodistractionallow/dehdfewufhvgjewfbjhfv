@@ -93,7 +93,13 @@ class Bowler:
 class Batsman:
     def __init__(self,c,x,y):self.color=c;self.x=x;self.y=y;self.radius=PLAYER_RADIUS;self.bat_width_orig=8;self.bat_height_orig=40;self.bat_color=(139,69,19);self.bat_rect=pygame.Rect(0,0,0,0);self.bat_angle=0;self.bat_draw_x_offset=self.radius;self.action_frames_total=BATSMAN_ACTION_TOTAL_FRAMES;self.action_current_frame=0;self.current_action="idle"
     # Draws the batsman and their animated bat.
-    def draw(self,s):pygame.draw.circle(s,self.color,(self.x,self.y),self.radius);pygame.draw.circle(s,BLACK,(self.x,self.y),self.radius,1);bp_x=self.x+self.bat_draw_x_offset;bp_y=self.y;pts=[(-self.bat_width_orig/2,-self.bat_height_orig/2),(self.bat_width_orig/2,-self.bat_height_orig/2),(self.bat_width_orig/2,self.bat_height_orig/2),(-self.bat_width_orig/2,self.bat_height_orig/2)];rp=[]
+    def draw(self,s):
+        pygame.draw.circle(s,self.color,(self.x,self.y),self.radius)
+        pygame.draw.circle(s,BLACK,(self.x,self.y),self.radius,1)
+        bp_x=self.x+self.bat_draw_x_offset
+        bp_y=self.y
+        pts=[(-self.bat_width_orig/2,-self.bat_height_orig/2),(self.bat_width_orig/2,-self.bat_height_orig/2),(self.bat_width_orig/2,self.bat_height_orig/2),(-self.bat_width_orig/2,self.bat_height_orig/2)]
+        rp=[]
         for px,py in pts:rx=px*math.cos(math.radians(self.bat_angle))-py*math.sin(math.radians(self.bat_angle));ry=px*math.sin(math.radians(self.bat_angle))+py*math.cos(math.radians(self.bat_angle));rp.append((bp_x+rx,bp_y+ry))
         pygame.draw.polygon(s,self.bat_color,rp)
     # Initiates a batsman action based on the ball outcome.
