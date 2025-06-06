@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cricket Scorecard Generator</title>
+    <style>
+        :root {
+            --body-bg: #f4f6f9;
+            --container-bg: #ffffff;
+            --text-color: #343a40;
+            --heading-color: #343a40;
+            --link-color: #007bff;
+            --link-hover-color: #0056b3;
+            --button-bg: #007bff;
+            --button-text: #ffffff;
+            --button-hover-bg: #0056b3;
+            --fab-bg: #007bff; /* Floating Action Button */
+            --fab-text: #ffffff;
+            --fab-hover-bg: #0056b3;
+
+            /* Tables */
+            --table-border-color: #ddd;
+            --table-header-bg: #4a6572; /* slate grey/blue */
+            --table-header-text: #ffffff;
+            --table-header-border-bottom: #34495e;
+            --table-row-odd-bg: #f9f9f9;
+            --table-row-hover-bg: #f1f1f1;
+
+            /* Summaries / Alerts */
+            --summary-toss-bg: #e9ecef;
+            --summary-toss-text: #495057;
+            --summary-toss-border: #ced4da;
+            --summary-result-bg: #d4edda; /* success green */
+            --summary-result-text: #155724;
+            --summary-result-border: #c3e6cb;
+
+            /* Commentary */
+            --commentary-header-bg: #546e7a;
+            --commentary-header-text: #ffffff;
+            --commentary-header-hover-bg: #455a64;
+            --commentary-content-bg: #ffffff;
+            --commentary-content-border: #ddd;
+            --commentary-entry-border: #eee;
+
+            /* Team Selection Area */
+            --team-selection-bg: #e9ecef;
+            --team-box-border: #ccc;
+            --team-box-bg: #fff;
+            --team-box-text: #333;
+            --team-box-shadow-color: rgba(0,0,0,0.1); /* Shadow color variable */
+
+            /* Toss Animation */
+            --toss-animation-bg: #f9f9f9;
+            --toss-coin-bg: #FFD700;
+            --toss-coin-border: #DAA520;
+            --toss-text-color: #333;
+        }
+
+        [data-theme="dark"] {
+            --body-bg: #1e1e1e;
+            --container-bg: #2c2c2c;
+            --text-color: #e0e0e0;
+            --heading-color: #f1c40f; /* Accent color for headings in dark mode */
+            --link-color: #f1c40f;
+            --link-hover-color: #e0b804;
+            --button-bg: #f1c40f;
+            --button-text: #1e1e1e;
+            --button-hover-bg: #e0b804;
+            --fab-bg: #f1c40f;
+            --fab-text: #1e1e1e;
+            --fab-hover-bg: #e0b804;
+
+            /* Tables */
+            --table-border-color: #4a6572; /* Darker borders */
+            --table-header-bg: #34495e; /* Dark blue/grey */
+            --table-header-text: #f1c40f; /* Accent text */
+            --table-header-border-bottom: #2c3e50;
+            --table-row-odd-bg: #3a3a3a;
+            --table-row-hover-bg: #4a4a4a;
+
+            /* Summaries / Alerts */
+            --summary-toss-bg: #3a3a3a;
+            --summary-toss-text: #e0e0e0;
+            --summary-toss-border: #4a4a4a;
+            --summary-result-bg: #27ae60; /* Brighter green on dark */
+            --summary-result-text: #ffffff;
+            --summary-result-border: #1f8a4c;
+
+            /* Commentary */
+            --commentary-header-bg: #34495e;
+            --commentary-header-text: #f1c40f;
+            --commentary-header-hover-bg: #4a6572;
+            --commentary-content-bg: #222;
+            --commentary-content-border: #444;
+            --commentary-entry-border: #444;
+
+            /* Team Selection Area */
+            --team-selection-bg: #222;
+            --team-box-border: #555;
+            --team-box-bg: #3a3a3a;
+            --team-box-text: #e0e0e0;
+            --team-box-shadow-color: rgba(0,0,0,0.3); /* Darker shadow color */
+
+            /* Toss Animation */
+            --toss-animation-bg: #2c2c2c;
+            --toss-coin-bg: #f1c40f; /* Keep coin bright */
+            --toss-coin-border: #DAA520;
+            --toss-text-color: #e0e0e0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background-color: var(--body-bg);
+            padding-top: 20px;
+            padding-bottom: 20px;
+            color: var(--text-color);
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background-color: var(--container-bg);
+            box-shadow: 0 0 15px var(--team-box-shadow-color); /* Adjusted to use variable */
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .team-selection {
+            margin-bottom: 20px;
+            padding: 20px;
+            border: 1px solid var(--table-border-color); /* Using table border for consistency */
+            border-radius: 5px;
+            background-color: var(--team-selection-bg);
+        }
+        h2 {
+            text-align: center;
+            color: var(--heading-color);
+        }
+        h3 {
+            text-align: center;
+            color: var(--heading-color);
+            margin-bottom: 15px;
+        }
+        h4 {
+            text-align: center;
+            color: var(--heading-color);
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+        h5 {
+            color: var(--heading-color);
+            margin-top: 15px;
+            margin-bottom: 5px;
+            text-align: left;
+        }
+        label {
+            margin-right: 10px;
+            /* color handled by body */
+        }
+        select {
+            padding: 10px;
+            margin-right: 10px;
+            border: 1px solid var(--table-border-color);
+            border-radius: 4px;
+            min-width: 100px;
+            background-color: var(--container-bg); /* Match container for inputs */
+            color: var(--text-color);
+        }
+        button { /* General button styling - primarily for sim buttons */
+            padding: 10px 15px;
+            margin-right: 10px;
+            background-color: var(--button-bg);
+            color: var(--button-text);
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: var(--button-hover-bg);
+        }
+        .sim-button { /* Specific class for main action buttons if needed */
+            margin-left: 10px;
+            margin-right: 10px;
+            padding: 10px 20px;
+        }
+        button:disabled { /* General disabled state */
+            background-color: #cccccc; /* Consider a variable: --button-disabled-bg */
+            color: #666666;       /* Consider a variable: --button-disabled-text */
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+        .scorecard-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid var(--table-border-color);
+            border-radius: 5px;
+            background-color: var(--container-bg); /* Match container for sections */
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            border-radius: 5px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px var(--team-box-shadow-color); /* Adjusted */
+        }
+        th, td {
+            border: 1px solid var(--table-border-color);
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: var(--table-header-bg);
+            color: var(--table-header-text);
+            border-bottom: 2px solid var(--table-header-border-bottom);
+        }
+        tbody tr:nth-child(odd) {
+            background-color: var(--table-row-odd-bg);
+        }
+        tbody tr:hover {
+            background-color: var(--table-row-hover-bg);
+        }
+        .hidden {
+            display: none;
+        }
+        .match-summary.toss-summary {
+            background-color: var(--summary-toss-bg);
+            border: 1px solid var(--summary-toss-border);
+            color: var(--summary-toss-text);
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 15px;
+        }
+        .match-summary h4 {
+            text-align: left;
+            margin-top: 0;
+            color: inherit;
+        }
+        .result-highlight {
+            margin-top: 20px;
+            background-color: var(--summary-result-bg);
+            color: var(--summary-result-text);
+            border: 1px solid var(--summary-result-border);
+            padding: 15px;
+            text-align: center;
+            border-radius: 5px;
+        }
+        .result-highlight p strong {
+            font-size: 1.1em;
+            font-weight: bold;
+        }
+        hr {
+            border: 0;
+            height: 1px;
+            background: var(--table-border-color); /* Use table border color for hr */
+            margin-top: 25px;
+            margin-bottom: 25px;
+        }
+        p strong {
+            font-size: 1.05em;
+        }
+        .scorecard-section > p > strong {
+             font-weight: 600;
+        }
+        .commentary-section {
+            margin-top: 20px;
+            border: 1px solid var(--commentary-content-border);
+            border-radius: 5px;
+            background-color: var(--commentary-content-bg);
+        }
+        .commentary-header {
+            background-color: var(--commentary-header-bg);
+            color: var(--commentary-header-text);
+            padding: 10px;
+            cursor: pointer;
+            border-radius: 5px 5px 0 0;
+        }
+        .commentary-header:hover {
+            background-color: var(--commentary-header-hover-bg);
+        }
+        .commentary-content {
+            padding: 10px;
+            border-top: 1px solid var(--commentary-content-border);
+            max-height: 300px;
+            overflow-y: auto;
+            display: none; /* JS controlled */
+        }
+        .commentary-content p {
+            margin: 5px 0;
+            font-size: 0.9em;
+            border-bottom: 1px dashed var(--commentary-entry-border);
+            padding-bottom: 5px;
+        }
+        .commentary-content p:last-child {
+            border-bottom: none;
+        }
+
+        /* Team Grid Styles START */
+        .team-grid-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+            padding: 10px;
+        }
+        .team-box {
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease, border-color 0.3s ease;
+            border-radius: 10px;
+            background-color: var(--team-box-bg);
+            /* border is dynamically set by JS via team_data.colorPrimary, but we can set a default */
+            border: 2px solid var(--team-box-border);
+            box-shadow: 0 2px 5px var(--team-box-shadow-color);
+        }
+        .team-box:hover {
+            transform: translateY(-5px) scale(1.03);
+            box-shadow: 0 4px 10px var(--team-box-shadow-color); /* Slightly darker/more prominent on hover */
+        }
+        .team-logo {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: contain;
+            margin-bottom: 10px;
+            background-color: var(--container-bg); /* Ensure logo bg matches container bg */
+            padding: 5px;
+            box-shadow: 0 1px 3px var(--team-box-shadow-color);
+        }
+        .team-name {
+            font-weight: bold;
+            font-size: 0.9em;
+            color: var(--team-box-text);
+            margin-top: 5px;
+            transition: color 0.3s ease;
+        }
+        /* .team-box.selected-team1, .team-box.selected-team2 styling is mostly JS driven for box-shadow */
+
+        /* Team Grid Styles END */
+
+        /* Toss Animation Styles START */
+        #toss-animation-container {
+            text-align: center;
+            padding: 20px;
+            border: 1px solid var(--table-border-color);
+            margin-bottom: 20px;
+            background-color: var(--toss-animation-bg);
+            border-radius: 8px;
+        }
+        #coin {
+            width: 80px; height: 80px;
+            background-color: var(--toss-coin-bg);
+            border: 2px solid var(--toss-coin-border);
+            border-radius: 50%; margin: 0 auto 20px auto; display: flex;
+            justify-content: center; align-items: center; font-size: 1.1em;
+            color: var(--text-color); /* To contrast with coin bg */
+            position: relative; transform-style: preserve-3d;
+        }
+        .coin-flipping { animation: flip-animation 0.25s linear infinite; }
+        .coin-face { position: absolute; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; backface-visibility: hidden; }
+        .coin-tails { transform: rotateY(180deg); }
+        @keyframes flip-animation { 0% { transform: rotateY(0deg); } 100% { transform: rotateY(360deg); } }
+        #toss-text-announcement {
+            font-size: 1.2em;
+            min-height: 2.5em;
+            color: var(--toss-text-color);
+        }
+        /* Toss Animation Styles END */
+
+        .floating-action-button {
+            position: fixed;
+            bottom: 50px;
+            right: 50px;
+            width: auto;
+            min-width: 140px;
+            height: 55px;
+            padding: 0 20px;
+            border-radius: 28px;
+            background-color: var(--fab-bg);
+            color: var(--fab-text);
+            text-align: center;
+            font-size: 14px;
+            font-weight: bold;
+            line-height: 55px;
+            border: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3); /* This shadow might need its own variable if it changes significantly */
+            cursor: pointer;
+            z-index: 1000;
+            transition: background-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .floating-action-button:hover {
+            background-color: var(--fab-hover-bg);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.35); /* This shadow might need its own variable */
+        }
+
+        #themeToggleBtn {
+            background-color: var(--button-bg, #007bff); /* Default if var not ready */
+            color: var(--button-text, #ffffff);
+            border: 1px solid var(--button-bg, #007bff);
+            border-radius: 5px;
+            padding: 8px 12px;
+            position: fixed;
+            top: 20px;
+            right: 20px; /* Positioned top-right */
+            z-index: 2000; /* Ensure it's above other content */
+            cursor: pointer;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        #themeToggleBtn:hover {
+            background-color: var(--button-hover-bg, #0056b3);
+        }
+
+        /* Adjustments for theme toggle button text color in dark mode if button doesn't fully use theme vars */
+        [data-theme="dark"] #themeToggleBtn {
+            background-color: var(--button-bg); /* Uses dark theme button variables */
+            color: var(--button-text);
+            border-color: var(--button-bg);
+       }
+       [data-theme="dark"] #themeToggleBtn:hover {
+            background-color: var(--button-hover-bg);
+       }
+    </style>
+</head>
+<body>
+    <button id="themeToggleBtn" style="position: fixed; top: 20px; right: 20px; padding: 8px 12px; z-index: 1001; cursor: pointer;">Toggle Theme</button>
+    <div class="container">
+        <h2>Cricket Scorecard Generator</h2>
+
+        {% if not scorecard_data %}
+            <div class="team-selection">
+                <h3>Select Teams (Click to Select)</h3>
+                <form id="scorecardForm" action="{{ url_for('generate_scorecard') }}" method="post">
+                    <input type="hidden" name="selectedTeam1" id="selectedTeam1">
+                    <input type="hidden" name="selectedTeam2" id="selectedTeam2">
+
+                    <div class="team-grid-container">
+                        {% for team_code, team_data in teams.items() %}
+                        <div class="team-box"
+                             data-team-code="{{ team_code }}"
+                             data-full-name="{{ team_data.fullName }}"
+                             data-primary-color="{{ team_data.colorPrimary }}"
+                             data-secondary-color="{{ team_data.colorSecondary }}"
+                             {% if team_data.hoverColor %}data-hover-color="{{ team_data.hoverColor }}"{% endif %}
+                             style="border: 2px solid {{ team_data.colorPrimary }};">
+                            <img src="{{ team_data.logo }}" alt="{{ team_data.fullName }} Logo" class="team-logo">
+                            <p class="team-name">{{ team_data.name.upper() }}</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="simulation-options" style="text-align: center; margin-top: 20px; display: none;">
+                        <button type="submit" name="simulation_type" value="direct" id="directSimButton" class="sim-button">Direct Scorecard</button>
+                        <button type="submit" name="simulation_type" value="ball_by_ball" id="ballByBallSimButton" class="sim-button">Ball-by-Ball Simulation</button>
+                    </div>
+                </form>
+            </div>
+        {% else %}
+            <div id="play-new-game-button-container"> <!-- Inline styles removed -->
+                <form action="{{ url_for('index') }}" method="get">
+                    <button type="submit" class="floating-action-button">Simulate Another Match</button>
+                </form>
+            </div>
+        {% endif %}
+
+        <div id="toss-animation-container" style="display: none;">
+            <h3 id="toss-sequence-title" style="margin-bottom: 15px;">Coin Toss</h3>
+            <div id="coin"><span class="coin-face coin-heads">H</span><span class="coin-face coin-tails" style="display: none;">T</span></div>
+            <p id="toss-text-announcement" style="font-size: 1.2em; min-height: 2.5em;"></p>
+        </div>
+
+        {% if scorecard_data %}
+        <div class="scorecard-section">
+            <h3>{{ scorecard_data.match_teams_title }}</h3>
+            {% if scorecard_data.tossMsg %}
+            <div class="match-summary toss-summary"><h4>Toss</h4><p>{{ scorecard_data.tossMsg }}</p></div> <!-- toss-summary class added to allow specific styling if needed -->
+            {% endif %}
+            {% if scorecard_data.innings1BatTeam %}
+            <h4>Innings 1: {{ scorecard_data.innings1BatTeam.upper() }}</h4>
+            <table><thead><tr><th>Player</th><th>Runs</th><th>Balls</th><th>SR</th><th>How Out</th></tr></thead><tbody>{% for player, stats in scorecard_data.innings1Battracker.items() %}<tr><td>{{ player }}</td><td>{{ stats.runs }}</td><td>{{ stats.balls }}</td><td>{{ '%.2f'|format((stats.runs / stats.balls * 100) if stats.balls > 0 else 0) }}</td><td>{{ stats.how_out }}</td></tr>{% endfor %}</tbody></table>
+            <p><strong>Total: {{ scorecard_data.innings1Runs }}/{{ scorecard_data.innings1Wickets }} ({{ (scorecard_data.innings1Balls // 6) if scorecard_data.innings1Balls else 0 }}.{{ scorecard_data.innings1Balls % 6 if scorecard_data.innings1Balls else 0 }} Overs)</strong></p>
+            <h5>Bowling: {{ scorecard_data.innings2BatTeam.upper() }}</h5>
+            <table><thead><tr><th>Player</th><th>Overs</th><th>Runs</th><th>Wickets</th><th>Economy</th></tr></thead><tbody>{% for player, stats in scorecard_data.innings1Bowltracker.items() %}<tr><td>{{ player }}</td><td>{{ (stats.balls // 6) if stats.balls else 0 }}.{{ stats.balls % 6 if stats.balls else 0 }}</td><td>{{ stats.runs }}</td><td>{{ stats.wickets }}</td><td>{{ '%.2f'|format((stats.runs / (stats.balls / 6)) if stats.balls > 0 else 0) }}</td></tr>{% endfor %}</tbody></table>
+            {% endif %}
+            {% if scorecard_data.innings1Log %}
+            <div class="commentary-section"><div class="commentary-header" onclick="toggleCommentary('commentary1')">Innings 1: Over-by-Over Log &#9662;</div><div class="commentary-content" id="commentary1">{% for log_entry in scorecard_data.innings1Log %}<p>{{ log_entry.event }}</p>{% endfor %}</div></div>
+            {% endif %}
+            <hr>
+            {% if scorecard_data.innings2BatTeam %}
+            <h4>Innings 2: {{ scorecard_data.innings2BatTeam.upper() }}</h4>
+            <table><thead><tr><th>Player</th><th>Runs</th><th>Balls</th><th>SR</th><th>How Out</th></tr></thead><tbody>{% for player, stats in scorecard_data.innings2Battracker.items() %}<tr><td>{{ player }}</td><td>{{ stats.runs }}</td><td>{{ stats.balls }}</td><td>{{ '%.2f'|format((stats.runs / stats.balls * 100) if stats.balls > 0 else 0) }}</td><td>{{ stats.how_out }}</td></tr>{% endfor %}</tbody></table>
+            <p><strong>Total: {{ scorecard_data.innings2Runs }}/{{ scorecard_data.innings2Wickets }} ({{ (scorecard_data.innings2Balls // 6) if scorecard_data.innings2Balls else 0 }}.{{ scorecard_data.innings2Balls % 6 if scorecard_data.innings2Balls else 0 }} Overs)</strong></p>
+            <h5>Bowling: {{ scorecard_data.innings1BatTeam.upper() }}</h5>
+            <table><thead><tr><th>Player</th><th>Overs</th><th>Runs</th><th>Wickets</th><th>Economy</th></tr></thead><tbody>{% for player, stats in scorecard_data.innings2Bowltracker.items() %}<tr><td>{{ player }}</td><td>{{ (stats.balls // 6) if stats.balls else 0 }}.{{ stats.balls % 6 if stats.balls else 0 }}</td><td>{{ stats.runs }}</td><td>{{ stats.wickets }}</td><td>{{ '%.2f'|format((stats.runs / (stats.balls / 6)) if stats.balls > 0 else 0) }}</td></tr>{% endfor %}</tbody></table>
+            {% endif %}
+            {% if scorecard_data.innings2Log %}
+            <div class="commentary-section"><div class="commentary-header" onclick="toggleCommentary('commentary2')">Innings 2: Over-by-Over Log &#9662;</div><div class="commentary-content" id="commentary2">{% for log_entry in scorecard_data.innings2Log %}<p>{{ log_entry.event }}</p>{% endfor %}</div></div>
+            {% endif %}
+            {% if scorecard_data.winMsg %}
+            <div class="match-summary result-highlight"><h4>Result</h4><p><strong>{{ scorecard_data.winMsg }}</strong></p></div> <!-- result-highlight class is already specific -->
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+    <script>
+        function toggleCommentary(commentaryId) {
+            var content = document.getElementById(commentaryId);
+            var header = content.previousElementSibling;
+            if (content.style.display === "none" || content.style.display === "") {
+                content.style.display = "block";
+                header.innerHTML = header.innerHTML.replace("▼", "▲");
+            } else {
+                content.style.display = "none";
+                header.innerHTML = header.innerHTML.replace("▲", "▼");
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const scorecardData = {{ scorecard_data | tojson | safe if scorecard_data else 'null' }};
+            const teamsData = {{ teams | tojson | safe }};
+
+            if (scorecardData && scorecardData.tossMsg && !sessionStorage.getItem('tossAnimationShownForMatch_' + scorecardData.team1 + '_' + scorecardData.team2 + '_' + scorecardData.tossMsg)) {
+                runTossAnimation();
+            }
+
+            function runTossAnimation() {
+                const tossContainer = document.getElementById('toss-animation-container');
+                const coinEl = document.getElementById('coin');
+                const tossTextEl = document.getElementById('toss-text-announcement');
+                const headsFace = coinEl.querySelector('.coin-heads');
+                const tailsFace = coinEl.querySelector('.coin-tails');
+                const scorecardSection = document.querySelector('.scorecard-section');
+                const playNewGameButtonContainer = document.getElementById('play-new-game-button-container');
+
+                if (!tossContainer || !coinEl || !tossTextEl || !scorecardSection || (scorecardData && !playNewGameButtonContainer) ) { // Check scorecardData for playNewGameButtonContainer
+                    console.error("Toss animation elements or related containers not found!");
+                    if (scorecardSection) scorecardSection.style.display = 'block';
+                    if (playNewGameButtonContainer) playNewGameButtonContainer.style.display = 'block';
+                    return;
+                }
+
+                if (scorecardSection) scorecardSection.style.display = 'none';
+                if (playNewGameButtonContainer) playNewGameButtonContainer.style.display = 'none';
+                tossContainer.style.display = 'block';
+
+                const tossMsg = scorecardData.tossMsg;
+                const parts = tossMsg.split(" won the toss and chose to ");
+                const winnerCode = parts[0].trim();
+                const team1Code = scorecardData.team1;
+                const team2Code = scorecardData.team2;
+                const winnerData = teamsData[winnerCode.toLowerCase()];
+                const winnerName = winnerData ? winnerData.fullName || winnerCode : winnerCode;
+                const opponentCode = winnerCode.toLowerCase() === team1Code.toLowerCase() ? team2Code : team1Code;
+                const opponentData = teamsData[opponentCode.toLowerCase()];
+                const callingTeamName = opponentData ? opponentData.fullName || opponentCode : "Opponent";
+                const call = Math.random() < 0.5 ? "Heads" : "Tails";
+                const outcome = Math.random() < 0.5 ? "Heads" : "Tails";
+                let sequenceStep = 0;
+                const steps = [
+                    () => { tossTextEl.textContent = `${callingTeamName} calls ${call}!`; coinEl.className = 'coin'; headsFace.style.display = 'block'; tailsFace.style.display = 'none';},
+                    () => { tossTextEl.textContent = "Coin is spinning..."; coinEl.classList.add('coin-flipping'); },
+                    () => { tossTextEl.textContent = "Coin is spinning..."; },
+                    () => {
+                        coinEl.classList.remove('coin-flipping');
+                        headsFace.style.display = outcome === 'Heads' ? 'block' : 'none';
+                        tailsFace.style.display = outcome === 'Tails' ? 'block' : 'none';
+                        tossTextEl.textContent = `It's ${outcome}!`;
+                    },
+                    () => { tossTextEl.innerHTML = `<strong>${tossMsg}</strong>`; },
+                    () => {
+                        tossContainer.style.display = 'none';
+                        if (scorecardSection) scorecardSection.style.display = 'block';
+                        if (playNewGameButtonContainer) playNewGameButtonContainer.style.display = 'block';
+                        sessionStorage.setItem('tossAnimationShownForMatch_' + team1Code + '_' + team2Code + '_' + tossMsg, 'true');
+                    }
+                ];
+                function nextStep() {
+                    if (sequenceStep < steps.length) {
+                        steps[sequenceStep](); sequenceStep++;
+                        let delay = (sequenceStep === 2 || sequenceStep === 3) ? 2000 : 1500;
+                        if (sequenceStep === steps.length -1) delay = 2500;
+                        setTimeout(nextStep, delay);
+                    }
+                }
+                nextStep();
+            }
+
+            const scorecardDataPresent = {{ scorecard_data is not none | tojson }};
+            if (!scorecardDataPresent) {
+                const teamBoxes = document.querySelectorAll('.team-box');
+                const selectedTeam1Input = document.getElementById('selectedTeam1');
+                const selectedTeam2Input = document.getElementById('selectedTeam2');
+                const simulationOptionsDiv = document.querySelector('.simulation-options');
+                let team1 = null;
+                let team2 = null;
+
+                teamBoxes.forEach(box => {
+                    const primaryColor = box.dataset.primaryColor;
+                    const hoverColor = box.dataset.hoverColor;
+                    const teamNameP = box.querySelector('.team-name');
+                    // Store original border color from inline style (which is primaryColor)
+                    box.dataset.originalBorderColor = box.style.borderColor || primaryColor;
+                    const originalTextColor = teamNameP.style.color || '#333'; // Default text color from CSS
+
+                    function getContrastYIQ(hexcolor){
+                        if (!hexcolor || !hexcolor.startsWith('#')) return '#333';
+                        hexcolor = hexcolor.replace("#", "");
+                        var r = parseInt(hexcolor.substr(0,2),16);
+                        var g = parseInt(hexcolor.substr(2,2),16);
+                        var b = parseInt(hexcolor.substr(4,2),16);
+                        var yiq = ((r*299)+(g*587)+(b*114))/1000;
+                        return (yiq >= 128) ? '#333' : 'white';
+                    }
+
+                    box.addEventListener('mouseenter', function () {
+                        if (!this.classList.contains('selected-team1') && !this.classList.contains('selected-team2')) {
+                            const effectiveHoverColor = this.dataset.hoverColor || this.dataset.primaryColor;
+                            this.style.backgroundColor = effectiveHoverColor;
+                            this.style.borderColor = effectiveHoverColor; // Update border color on hover
+                            teamNameP.style.color = getContrastYIQ(effectiveHoverColor);
+                        }
+                    });
+
+                    box.addEventListener('mouseleave', function () {
+                        if (!this.classList.contains('selected-team1') && !this.classList.contains('selected-team2')) {
+                            this.style.backgroundColor = ''; // Revert to default CSS background
+                            this.style.borderColor = this.dataset.originalBorderColor; // Revert to original border
+                            teamNameP.style.color = originalTextColor; // Revert to original text color
+                        }
+                    });
+
+                    box.addEventListener('click', function () {
+                        const teamCode = this.dataset.teamCode;
+                        // Existing selection logic (condensed for brevity in this thought block)
+                        if (this.classList.contains('selected-team1')) {
+                            team1 = null; selectedTeam1Input.value = ''; this.classList.remove('selected-team1');
+                        } else if (this.classList.contains('selected-team2')) {
+                            team2 = null; selectedTeam2Input.value = ''; this.classList.remove('selected-team2');
+                        } else {
+                            if (!team1 && teamCode !== team2) {
+                                team1 = teamCode; selectedTeam1Input.value = team1; this.classList.add('selected-team1');
+                            } else if (!team2 && teamCode !== team1) {
+                                team2 = teamCode; selectedTeam2Input.value = team2; this.classList.add('selected-team2');
+                            } else if (team1 && team2) {
+                                const prevTeam1Box = document.querySelector('.team-box.selected-team1');
+                                if(prevTeam1Box) { prevTeam1Box.classList.remove('selected-team1');}
+                                team1 = teamCode; selectedTeam1Input.value = team1; this.classList.add('selected-team1');
+                                if (team1 === team2) { // If new team1 is same as old team2, clear team2
+                                    const prevTeam2Box = document.querySelector('.team-box.selected-team2');
+                                    if(prevTeam2Box) { prevTeam2Box.classList.remove('selected-team2');}
+                                    team2 = null; selectedTeam2Input.value = '';
+                                }
+                            }
+                        }
+
+                        // Restyle ALL boxes based on their current selection state
+                        teamBoxes.forEach(innerBox => {
+                            const iPrimaryColor = innerBox.dataset.primaryColor;
+                            const iHoverColor = innerBox.dataset.hoverColor;
+                            const iEffectiveHoverColor = iHoverColor || iPrimaryColor;
+                            const iOriginalBorderColor = innerBox.dataset.originalBorderColor || iPrimaryColor;
+                            const innerTeamNameP = innerBox.querySelector('.team-name');
+
+                            if (innerBox.classList.contains('selected-team1') || innerBox.classList.contains('selected-team2')) {
+                                innerBox.style.backgroundColor = iEffectiveHoverColor;
+                                innerBox.style.borderColor = iEffectiveHoverColor;
+                                innerTeamNameP.style.color = getContrastYIQ(iEffectiveHoverColor);
+                            } else {
+                                innerBox.style.backgroundColor = '';
+                                innerBox.style.borderColor = iOriginalBorderColor;
+                                innerTeamNameP.style.color = originalTextColor; // Revert to original for non-selected
+                            }
+                        });
+                        validateSelections();
+                    });
+                });
+
+                function validateSelections() {
+                    if (team1 && team2 && team1 !== team2) {
+                        if(simulationOptionsDiv) simulationOptionsDiv.style.display = 'block';
+                    } else {
+                        if(simulationOptionsDiv) simulationOptionsDiv.style.display = 'none';
+                    }
+                }
+                validateSelections();
+                const scorecardForm = document.getElementById('scorecardForm');
+                if (scorecardForm) {
+                    scorecardForm.addEventListener('submit', function(event) {
+                        if (!selectedTeam1Input.value || !selectedTeam2Input.value) {
+                            event.preventDefault(); alert('Please select two teams to generate the scorecard.');
+                        } else if (selectedTeam1Input.value === selectedTeam2Input.value) {
+                            event.preventDefault(); alert('Please select two different teams.');
+                        }
+                    });
+                }
+            }
+        });
+
+        const themeToggleBtn = document.getElementById('themeToggleBtn');
+        const currentTheme = localStorage.getItem('theme'); // Use 'theme' as the key
+
+        // Function to apply theme (sets data-attribute on body)
+        function applyTheme(theme) {
+            if (theme === 'dark') {
+                document.body.setAttribute('data-theme', 'dark');
+                if (themeToggleBtn) themeToggleBtn.textContent = 'Light Mode'; // Update button text
+            } else {
+                document.body.setAttribute('data-theme', 'light'); // Default to light
+                if (themeToggleBtn) themeToggleBtn.textContent = 'Dark Mode'; // Update button text
+            }
+        }
+
+        // Apply saved theme on initial load
+        if (currentTheme) {
+            applyTheme(currentTheme);
+        } else {
+            // If no theme saved, default to light and update button text accordingly
+            applyTheme('light');
+        }
+
+        // Event listener for the button
+        if (themeToggleBtn) {
+            themeToggleBtn.addEventListener('click', () => {
+                let newTheme = 'light'; // Default to light if current is dark or not set
+                if (document.body.getAttribute('data-theme') === 'light') {
+                    newTheme = 'dark';
+                }
+                applyTheme(newTheme);
+                localStorage.setItem('theme', newTheme); // Save new preference
+            });
+        }
+    </script>
+</body>
+</html>
