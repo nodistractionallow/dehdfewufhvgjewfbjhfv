@@ -22,25 +22,35 @@
     </div>
 
     <script type="text/javascript">
+        // Attempt to get match data passed from Flask template
+        // `match_data_json` is expected to be a JSON string if provided by Flask, else null.
         const matchDataFromFlask = {{ match_data_json | safe if match_data_json else 'null' }};
 
+        // Main asynchronous function to initialize Pyodide and run the Python animation script.
         async function mainPyodide() {
+            // Load Pyodide runtime
             let pyodide = await loadPyodide();
             let statusElement = document.getElementById("loading-status");
-            statusElement.textContent = "Pyodide loaded. Loading pygame-ce...";
+            statusElement.textContent = "Pyodide loaded. Loading micropip and pygame-ce...";
 
-            await pyodide.loadPackage(["pygame-ce"]);
+            // Load micropip for installing packages from PyPI
+            await pyodide.loadPackage(["micropip"]);
+            // Install pygame-ce (Community Edition) using micropip
+            await pyodide.micropip.install("pygame-ce");
             statusElement.textContent = "Pygame-ce loaded. Fetching animation script...";
 
+            // Fetch the Python animation script
+            // `url_for` is a Flask function that generates the URL for the static file.
             let pythonScript = await fetch("{{ url_for('static', filename='animation/cricket_animation.py') }}");
-            let pythonCode = await pythonScript.text();
+            let pythonCode = await pythonScript.text(); // Get the script content as text
             statusElement.textContent = "Animation script fetched. Preparing data and running animation...";
 
+            // If match data was passed from Flask, make it available to the Python script
             if (matchDataFromFlask) {
-                // Make the match_data_for_animation available in Pyodide's global scope
-                // The toPy() method converts JavaScript objects to Python objects (dicts, lists, etc.)
+                // `pyodide.toPy()` converts JavaScript objects/JSON into Python objects (e.g., dicts, lists).
+                // `pyodide.globals.set()` makes this Python object available in Pyodide's global scope.
                 pyodide.globals.set("match_data_for_animation", pyodide.toPy(matchDataFromFlask));
-                console.log("Match data passed to Pyodide:", matchDataFromFlask);
+                console.log("Match data passed to Pyodide:", matchDataFromFlask); // For debugging
                 statusElement.textContent = "Match data loaded. Starting animation...";
             } else {
                 console.log("No match data from Flask, animation will use its own UI for setup.");
@@ -48,17 +58,20 @@
             }
 
             try {
+                // Execute the Python script asynchronously.
+                // The Python script contains the Pygame loop and animation logic.
                 await pyodide.runPythonAsync(pythonCode);
-                // If the script runs without error and sets up its own loop, this might be the last message from JS.
-                // If runPythonAsync completes, it means the Python script finished.
-                // For continuous animations like Pygame, the script itself should manage the loop.
-                // statusElement.textContent = "Animation script execution finished by Pyodide.";
+                // Note: If the Python script has an infinite loop (like a Pygame game loop),
+                // `runPythonAsync` might not "complete" in the traditional sense until that loop exits.
+                // However, for Pygame in Pyodide, the loop is typically managed to work with the browser's event system.
             } catch (err) {
+                // Handle errors during Python script execution
                 console.error("Error running Python script:", err);
                 statusElement.textContent = "Error loading animation. See console for details.";
                 document.getElementById("pygame-container").innerHTML = "<p>Error loading animation. Check console.</p>";
             }
         }
+        // Call the main function to start the process.
         mainPyodide();
     </script>
 </body>
