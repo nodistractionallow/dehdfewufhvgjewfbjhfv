@@ -103,7 +103,8 @@ class Batsman:
         for px,py in pts:rx=px*math.cos(math.radians(self.bat_angle))-py*math.sin(math.radians(self.bat_angle));ry=px*math.sin(math.radians(self.bat_angle))+py*math.cos(math.radians(self.bat_angle));rp.append((bp_x+rx,bp_y+ry))
         pygame.draw.polygon(s,self.bat_color,rp)
     # Initiates a batsman action based on the ball outcome.
-    def start_action(self,outcome):self.action_current_frame=0
+    def start_action(self,outcome):
+        self.action_current_frame=0
         if isinstance(outcome,int): # Runs scored
             if outcome==0:self.current_action="defensive"
             elif outcome in[1,2,3]:self.current_action="push"
