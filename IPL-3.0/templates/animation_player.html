@@ -31,19 +31,12 @@
             // Load Pyodide runtime
             let pyodide = await loadPyodide();
             let statusElement = document.getElementById("loading-status");
-            statusElement.textContent = "Pyodide loaded. Loading micropip and pygame-ce...";
+            statusElement.textContent = "Pyodide loaded. Loading micropip and pygame-ce packages...";
 
-            // Load micropip for installing packages from PyPI
-            await pyodide.loadPackage("micropip"); // Load micropip package itself
+            // Load micropip and pygame-ce
+            await pyodide.loadPackage(["micropip", "pygame-ce"]); // Load micropip and pygame-ce
 
-            // Now, run Python code via Pyodide to use the loaded micropip
-            await pyodide.runPythonAsync(`
-                import micropip
-                print("Attempting to install pygame-ce with micropip from Python...")
-                await micropip.install('pygame-ce')
-                print("pygame-ce installation attempt complete.")
-            `);
-            statusElement.textContent = "Pygame-ce loaded. Fetching animation script...";
+            statusElement.textContent = "Required packages loaded. Fetching animation script...";
 
             // Fetch the Python animation script
             // `url_for` is a Flask function that generates the URL for the static file.
