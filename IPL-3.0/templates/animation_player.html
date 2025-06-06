@@ -34,9 +34,15 @@
             statusElement.textContent = "Pyodide loaded. Loading micropip and pygame-ce...";
 
             // Load micropip for installing packages from PyPI
-            await pyodide.loadPackage(["micropip"]);
-            // Install pygame-ce (Community Edition) using micropip
-            await pyodide.micropip.install("pygame-ce");
+            await pyodide.loadPackage("micropip"); // Load micropip package itself
+
+            // Now, run Python code via Pyodide to use the loaded micropip
+            await pyodide.runPythonAsync(`
+                import micropip
+                print("Attempting to install pygame-ce with micropip from Python...")
+                await micropip.install('pygame-ce')
+                print("pygame-ce installation attempt complete.")
+            `);
             statusElement.textContent = "Pygame-ce loaded. Fetching animation script...";
 
             // Fetch the Python animation script
