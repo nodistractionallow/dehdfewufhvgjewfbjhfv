@@ -6,6 +6,7 @@ import os
 import copy # For deepcopy if needed by process_batting_innings
 import uuid # For unique match IDs
 import logging # For logging errors
+import re # For log parsing
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
@@ -78,6 +79,46 @@ def process_batting_innings(bat_tracker_original):
             if any_other_batted :
                 stats['how_out'] = "DNB"
     return bat_tracker, wickets
+
+def simplify_event_log(raw_log_entries):
+    simplified_log = []
+    for entry in raw_log_entries:
+        event_text = entry.get("event", "")
+
+        if " FOUR" in event_text:
+            simplified_log.append(4)
+            continue
+        if " SIX" in event_text:
+            simplified_log.append(6)
+            continue
+
+        match = re.search(r' (W|\d) (?=.*Score:)', event_text) # Space before digit/W, space after, then Score:
+        if not match: # Fallback: look for W or 0-6 directly before " Score:"
+            match = re.search(r'(W|[0-6]) Score:', event_text)
+        if not match: # Fallback for cases like "0.1 PlayerA to PlayerB WICKET Score: ..."
+             match = re.search(r'\s(WICKET)\s+Score:', event_text, re.IGNORECASE)
+             if match: outcome = "wicket" # Ensure maps to "wicket" string
+             else: outcome = None
+        else: # Original match logic
+            outcome = match.group(1)
+
+        if outcome:
+            if outcome == 'W' or outcome.upper() == 'WICKET':
+                simplified_log.append("wicket")
+            elif outcome.isdigit():
+                simplified_log.append(int(outcome))
+        elif "Wide" in event_text or "WD" in event_text:
+            simplified_log.append(0)
+        elif "LB" in event_text or "NB" in event_text:
+            nb_runs_match = re.search(r'(\d(?=\sNB))|(NB\s\d)', event_text)
+            if nb_runs_match:
+                run_part = nb_runs_match.group(1) or nb_runs_match.group(2)
+                if run_part and run_part.isdigit(): simplified_log.append(int(run_part))
+                else: simplified_log.append(0)
+            else:
+                simplified_log.append(0)
+    return [item for item in simplified_log if item is not None]
+
 # --- End Helper Functions ---
 
 scores_dir_path = os.path.join(os.getcwd(), "scores")
@@ -202,13 +243,71 @@ def replay_match_view():
                            team1_short_name=team1_s_name,
                            team2_short_name=team2_s_name)
 
-# Routes for MatchSimulator based interactive simulation (currently disconnected from main UI flow)
-# @app.route('/ball_by_ball_game_view')
-# def ball_by_ball_game_view():
-#     # ... (code for MatchSimulator based view) ...
-# @app.route('/simulate_next_ball', methods=['POST'])
-# def simulate_next_ball():
-#     # ... (code for MatchSimulator based simulation call) ...
+@app.route('/play_animation') # This is the old route, can be kept or removed
+def play_animation():
+    return render_template('animation_player.html')
+
+
+@app.route('/setup_animation', methods=['POST'])
+def setup_animation():
+    teams_data = load_teams()
+    team1_code = request.form.get('selectedTeam1')
+    team2_code = request.form.get('selectedTeam2')
+
+    if not team1_code or not team2_code:
+        return redirect(url_for('index', error_message="Please select two teams for animation."))
+    if team1_code == team2_code:
+        return redirect(url_for('index', error_message="Please select two different teams."))
+
+    match_results = mainconnect.game(manual=False, sentTeamOne=team1_code, sentTeamTwo=team2_code, switch="webapp_full_log")
+
+    raw_log_to_process = []
+    batting_team_animation = ""
+    bowling_team_animation = ""
+
+    # Prioritize team1_code as the batting team for the animation log
+    if match_results.get("innings1BatTeam", "").lower() == team1_code.lower():
+        raw_log_to_process = match_results.get("innings1Log", [])
+        batting_team_animation = team1_code
+        bowling_team_animation = team2_code
+    elif match_results.get("innings2BatTeam", "").lower() == team1_code.lower():
+        raw_log_to_process = match_results.get("innings2Log", [])
+        batting_team_animation = team1_code
+        bowling_team_animation = team2_code
+    else:
+        # Fallback if team1_code didn't bat (e.g. if mainconnect changes batting order unexpectedly)
+        # Default to first innings log for animation
+        raw_log_to_process = match_results.get("innings1Log", [])
+        batting_team_animation = match_results.get("innings1BatTeam", team1_code)
+        # Ensure bowling_team_animation is the other team
+        if batting_team_animation.lower() == team1_code.lower():
+            bowling_team_animation = team2_code
+        else:
+            bowling_team_animation = team1_code
+
+    simplified_animation_log = simplify_event_log(raw_log_to_process)
+
+    if not simplified_animation_log:
+        simplified_animation_log = [0, 1, 4, "wicket", 6, 0, 0, 0, 2, 0, 1, 0, 4, 0, "wicket", 6, 0, 1, 2, 0]
+
+    team_a_info = teams_data.get(batting_team_animation.lower(), {})
+    team_b_info = teams_data.get(bowling_team_animation.lower(), {})
+
+    def hex_to_rgb(hex_color):
+        hex_color = hex_color.lstrip('#')
+        if len(hex_color) == 6:
+            return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+        return (0,0,255)
+
+    match_data = {
+        "team_a_name": team_a_info.get("name", batting_team_animation),
+        "team_b_name": team_b_info.get("name", bowling_team_animation),
+        "team_a_color_hex": team_a_info.get("colorPrimary", "#0000FF"),
+        "team_b_color_hex": team_b_info.get("colorPrimary", "#FF0000"),
+        "log": simplified_animation_log
+    }
+
+    return render_template('animation_player.html', match_data_json=json.dumps(match_data))
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
