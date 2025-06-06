@@ -48,7 +48,8 @@ class Scoreboard:
     # Sets team names and current batting team.
     def set_teams(self, ta, tb, btf): self.team_a_name=ta; self.team_b_name=tb; self.batting_team_name=btf; self.max_overs=(20//6)+(1 if (20%6)>0 else 0) # Max overs for 20-ball log
     # Updates scoreboard data based on ball outcome.
-    def update(self, r, w, ts, tw, tbb): self.score=ts; self.wickets=tw;
+    def update(self, r, w, ts, tw, tbb):
+        self.score=ts; self.wickets=tw;
         if tbb>=0: self.overs_done=tbb//6; self.balls_in_current_over=tbb%6
         else: self.overs_done=0; self.balls_in_current_over=0
         if w: self.last_ball_outcome_display="WICKET!"
