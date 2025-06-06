@@ -80,11 +80,16 @@ def process_batting_innings(bat_tracker_original):
                 stats['how_out'] = "DNB"
     return bat_tracker, wickets
 
+# Simplifies a detailed match event log into a list of outcomes (runs or "wicket")
+# suitable for the Pygame animation.
 def simplify_event_log(raw_log_entries):
     simplified_log = []
+    # Regex patterns to identify key events in log strings.
+    # Order of checks matters (e.g., FOUR/SIX before single digit runs).
     for entry in raw_log_entries:
-        event_text = entry.get("event", "")
+        event_text = entry.get("event", "") # Get the raw event string
 
+        # Check for explicit " FOUR" or " SIX"
         if " FOUR" in event_text:
             simplified_log.append(4)
             continue
@@ -92,32 +97,41 @@ def simplify_event_log(raw_log_entries):
             simplified_log.append(6)
             continue
 
-        match = re.search(r' (W|\d) (?=.*Score:)', event_text) # Space before digit/W, space after, then Score:
-        if not match: # Fallback: look for W or 0-6 directly before " Score:"
+        # Attempt to find (W)icket or single (d)igit runs, typically formatted like " X Score:" or "W Score:"
+        # This pattern looks for a space, then W or a digit, then a space, then expects "Score:" later in the string.
+        match = re.search(r' (W|\d) (?=.*Score:)', event_text)
+        if not match:
+            # Fallback: look for W or 0-6 directly before " Score:" (no space after W/digit)
             match = re.search(r'(W|[0-6]) Score:', event_text)
-        if not match: # Fallback for cases like "0.1 PlayerA to PlayerB WICKET Score: ..."
+        if not match:
+            # Fallback for more verbose WICKET entries, e.g., "... WICKET Score: ..."
              match = re.search(r'\s(WICKET)\s+Score:', event_text, re.IGNORECASE)
-             if match: outcome = "wicket" # Ensure maps to "wicket" string
+             if match: outcome = "wicket"
              else: outcome = None
-        else: # Original match logic
-            outcome = match.group(1)
+        else:
+            outcome = match.group(1) # The captured group (W or digit)
 
         if outcome:
             if outcome == 'W' or outcome.upper() == 'WICKET':
                 simplified_log.append("wicket")
             elif outcome.isdigit():
                 simplified_log.append(int(outcome))
+        # Handle extras like Wide (WD), No Ball (NB), Leg Bye (LB)
         elif "Wide" in event_text or "WD" in event_text:
-            simplified_log.append(0)
+            simplified_log.append(0) # Represent wide as 0 runs for animation log
         elif "LB" in event_text or "NB" in event_text:
+            # Check if No Ball log specifies runs scored off it (e.g., "1 NB" or "NB 1")
             nb_runs_match = re.search(r'(\d(?=\sNB))|(NB\s\d)', event_text)
             if nb_runs_match:
-                run_part = nb_runs_match.group(1) or nb_runs_match.group(2)
+                run_part = nb_runs_match.group(1) or nb_runs_match.group(2) # Get the digit part
                 if run_part and run_part.isdigit(): simplified_log.append(int(run_part))
-                else: simplified_log.append(0)
+                else: simplified_log.append(0) # Default to 0 if runs not clearly specified with NB
             else:
-                simplified_log.append(0)
-    return [item for item in simplified_log if item is not None]
+                simplified_log.append(0) # Default for LB or NB without specified runs
+        # If no specific outcome identified, it's not added to the simplified log.
+        # This helps filter out non-scoring or non-wicket events if necessary.
+
+    return [item for item in simplified_log if item is not None] # Clean out any None entries
 
 # --- End Helper Functions ---
 
@@ -243,29 +257,38 @@ def replay_match_view():
                            team1_short_name=team1_s_name,
                            team2_short_name=team2_s_name)
 
-@app.route('/play_animation') # This is the old route, can be kept or removed
+# Route to render the animation player HTML page.
+# This page will load Pyodide and the Pygame animation script.
+@app.route('/play_animation')
 def play_animation():
-    return render_template('animation_player.html')
+    # This route can be used if we want to navigate to the animation player
+    # without pre-loading specific match data (e.g., allowing user to select log in Pygame UI).
+    return render_template('animation_player.html') # match_data_json is not passed here
 
-
+# Route to set up and launch the cricket animation with specific match data.
+# It simulates a match, processes the log, and passes data to the animation player.
 @app.route('/setup_animation', methods=['POST'])
 def setup_animation():
-    teams_data = load_teams()
-    team1_code = request.form.get('selectedTeam1')
-    team2_code = request.form.get('selectedTeam2')
+    teams_data = load_teams() # Load team information (names, colors, etc.)
+    team1_code = request.form.get('selectedTeam1') # Get selected Team 1 from form
+    team2_code = request.form.get('selectedTeam2') # Get selected Team 2 from form
 
+    # Basic validation for team selection
     if not team1_code or not team2_code:
         return redirect(url_for('index', error_message="Please select two teams for animation."))
     if team1_code == team2_code:
         return redirect(url_for('index', error_message="Please select two different teams."))
 
+    # Simulate a full match to get the logs.
+    # "webapp_full_log" switch ensures detailed logs are generated by mainconnect.py.
     match_results = mainconnect.game(manual=False, sentTeamOne=team1_code, sentTeamTwo=team2_code, switch="webapp_full_log")
 
     raw_log_to_process = []
-    batting_team_animation = ""
-    bowling_team_animation = ""
+    batting_team_animation = "" # Team that will be shown batting in animation (Team A)
+    bowling_team_animation = "" # Team that will be shown bowling in animation (Team B)
 
-    # Prioritize team1_code as the batting team for the animation log
+    # Determine which innings log to use for the animation.
+    # The animation is currently set up for one innings. We prioritize team1_code as the batting team.
     if match_results.get("innings1BatTeam", "").lower() == team1_code.lower():
         raw_log_to_process = match_results.get("innings1Log", [])
         batting_team_animation = team1_code
@@ -275,38 +298,43 @@ def setup_animation():
         batting_team_animation = team1_code
         bowling_team_animation = team2_code
     else:
-        # Fallback if team1_code didn't bat (e.g. if mainconnect changes batting order unexpectedly)
-        # Default to first innings log for animation
+        # Fallback: if team1_code didn't bat for some reason, use the first innings log.
         raw_log_to_process = match_results.get("innings1Log", [])
         batting_team_animation = match_results.get("innings1BatTeam", team1_code)
-        # Ensure bowling_team_animation is the other team
+        # Ensure bowling_team_animation is correctly set to the other team.
         if batting_team_animation.lower() == team1_code.lower():
             bowling_team_animation = team2_code
         else:
             bowling_team_animation = team1_code
 
+    # Convert the raw textual event log into a simplified list of outcomes for Pygame.
     simplified_animation_log = simplify_event_log(raw_log_to_process)
 
+    # If log simplification fails or results in an empty log, use a default test log.
     if not simplified_animation_log:
-        simplified_animation_log = [0, 1, 4, "wicket", 6, 0, 0, 0, 2, 0, 1, 0, 4, 0, "wicket", 6, 0, 1, 2, 0]
+        simplified_animation_log = [0, 1, 4, "wicket", 6, 0, 0, 0, 2, 0, 1, 0, 4, 0, "wicket", 6, 0, 1, 2, 0] # Default for testing
 
+    # Get team details (name, colors) from loaded team data.
     team_a_info = teams_data.get(batting_team_animation.lower(), {})
     team_b_info = teams_data.get(bowling_team_animation.lower(), {})
 
+    # Helper to convert hex color strings (e.g., "#RRGGBB") to RGB tuples (R,G,B) for Pygame.
     def hex_to_rgb(hex_color):
         hex_color = hex_color.lstrip('#')
         if len(hex_color) == 6:
             return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
-        return (0,0,255)
+        return (0,0,255) # Default to blue if hex string is invalid
 
+    # Prepare data structure to be passed to the animation player template.
     match_data = {
         "team_a_name": team_a_info.get("name", batting_team_animation),
         "team_b_name": team_b_info.get("name", bowling_team_animation),
-        "team_a_color_hex": team_a_info.get("colorPrimary", "#0000FF"),
-        "team_b_color_hex": team_b_info.get("colorPrimary", "#FF0000"),
+        "team_a_color_hex": team_a_info.get("colorPrimary", "#0000FF"), # Default blue
+        "team_b_color_hex": team_b_info.get("colorPrimary", "#FF0000"), # Default red
         "log": simplified_animation_log
     }
 
+    # Render the animation player, passing the match data as a JSON string.
     return render_template('animation_player.html', match_data_json=json.dumps(match_data))
 
 if __name__ == '__main__':
