@@ -163,9 +163,25 @@ class Ball:
             # Draw the ball itself
             pygame.draw.circle(surface, self.color, (int(self.x), int(self.y)), self.radius)
     # Initializes ball's trajectory towards the batsman.
-    def start_travel(self,sp,tp,pby):self.x,self.y=sp;self.start_x,self.start_y=sp;self.target_x,self.target_y=tp;self.pitch_bounce_y_coord=pby;self.current_travel_frame=0;self.has_bounced=False;self.visible=True;dx=self.target_x-self.start_x;ttba=self.total_travel_frames/2.2 if self.total_travel_frames > 0 else 1; self.vel_x=dx/self.total_travel_frames if self.total_travel_frames > 0 else 0; self.vel_y=(self.pitch_bounce_y_coord-self.start_y-0.5*self.gravity*(ttba**2))/ttba if ttba > 0 else -2; # Calculate initial y-velocity for parabolic arc
-                                     if self.vel_y > 0 and self.start_y < self.pitch_bounce_y_coord : self.vel_y *=-0.5; # Adjust if starting low
-                                     if self.vel_y == 0 and self.vel_x == 0 : self.vel_y = -2 # Ensure some movement
+    def start_travel(self,sp,tp,pby):
+        self.x, self.y = sp
+        self.start_x, self.start_y = sp
+        self.target_x, self.target_y = tp
+        self.pitch_bounce_y_coord = pby
+        self.current_travel_frame = 0
+        self.has_bounced = False
+        self.visible = True
+
+        dx = self.target_x - self.start_x
+        ttba = self.total_travel_frames / 2.2 if self.total_travel_frames > 0 else 1
+        self.vel_x = dx / self.total_travel_frames if self.total_travel_frames > 0 else 0
+        # Calculate initial y-velocity for parabolic arc
+        self.vel_y = (self.pitch_bounce_y_coord - self.start_y - 0.5 * self.gravity * (ttba**2)) / ttba if ttba > 0 else -2
+
+        if self.vel_y > 0 and self.start_y < self.pitch_bounce_y_coord: # Adjust if starting low
+            self.vel_y *= -0.5
+        if self.vel_y == 0 and self.vel_x == 0: # Ensure some movement
+            self.vel_y = -2
     # Updates ball's position based on velocity, gravity, and bounce. Returns False if travel is complete.
     def update_trajectory(self):
         if not self.visible or self.current_travel_frame>=self.total_travel_frames: self.visible=False; return False
